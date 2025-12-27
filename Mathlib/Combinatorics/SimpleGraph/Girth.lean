@@ -1,0 +1,89 @@
+import VerifiedAgora.tagger
+/-
+Copyright (c) 2023 Yaël Dillies. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Yaël Dillies
+-/
+import Mathlib.Combinatorics.SimpleGraph.Acyclic
+import Mathlib.Data.ENat.Lattice
+
+/-!
+# Girth of a simple graph
+
+This file defines the girth and the extended girth of a simple graph as the length of its smallest
+cycle, they give `0` or `∞` respectively if the graph is acyclic.
+-/
+
+namespace SimpleGraph
+variable {α : Type*} {G : SimpleGraph α}
+
+section egirth
+
+
+/--
+The extended girth of a simple graph is the length of its smallest cycle, or `∞` if the graph is
+acyclic.
+-/
+noncomputable def egirth (G : SimpleGraph α) : ℕ∞ :=
+  ⨅ a, ⨅ w : G.Walk a a, ⨅ _ : w.IsCycle, w.length
+
+@[simp]
+lemma le_egirth {n : ℕ∞} : n ≤ G.egirth ↔ ∀ a (w : G.Walk a a), w.IsCycle → n ≤ w.length := by
+  simp [egirth]
+
+@[simp]
+lemma egirth_eq_top : G.egirth = ⊤ ↔ G.IsAcyclic := by simp [egirth, IsAcyclic]
+
+protected alias ⟨_, IsAcyclic.egirth_eq_top⟩ := egirth_eq_top
+
+@[target] lemma egirth_anti : Antitone (egirth : SimpleGraph α → ℕ∞) := by sorry
+
+
+@[target] lemma exists_egirth_eq_length :
+    (∃ (a : α) (w : G.Walk a a), w.IsCycle ∧ G.egirth = w.length) ↔ ¬ G.IsAcyclic := by sorry
+
+
+lemma three_le_egirth : 3 ≤ G.egirth := by
+  by_cases h : G.IsAcyclic
+  · rw [← egirth_eq_top] at h
+    rw [h]
+    apply le_top
+  · rw [← exists_egirth_eq_length] at h
+    have ⟨_, _, _⟩ := h
+    simp_all only [Nat.cast_inj, Nat.ofNat_le_cast, Walk.IsCycle.three_le_length]
+
+@[simp] lemma egirth_bot : egirth (⊥ : SimpleGraph α) = ⊤ := by simp
+
+end egirth
+
+section girth
+
+
+/--
+The girth of a simple graph is the length of its smallest cycle, or junk value `0` if the graph is
+acyclic.
+-/
+noncomputable def girth (G : SimpleGraph α) : ℕ :=
+  G.egirth.toNat
+
+@[target] lemma three_le_girth (hG : ¬ G.IsAcyclic) : 3 ≤ G.girth := by sorry
+
+
+@[target] lemma girth_eq_zero : G.girth = 0 ↔ G.IsAcyclic := by sorry
+
+
+protected alias ⟨_, IsAcyclic.girth_eq_zero⟩ := girth_eq_zero
+
+lemma girth_anti {G' : SimpleGraph α} (hab : G ≤ G') (h : ¬ G.IsAcyclic) : G'.girth ≤ G.girth :=
+  ENat.toNat_le_toNat (egirth_anti hab) <| egirth_eq_top.not.mpr h
+
+@[target] lemma exists_girth_eq_length :
+    (∃ (a : α) (w : G.Walk a a), w.IsCycle ∧ G.girth = w.length) ↔ ¬ G.IsAcyclic := by sorry
+
+
+@[target] lemma girth_bot : girth (⊥ : SimpleGraph α) = 0 := by sorry
+
+
+end girth
+
+end SimpleGraph
